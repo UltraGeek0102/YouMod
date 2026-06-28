@@ -1,4 +1,4 @@
-name: Build IPA with tweaks
+name: Build Test IPA with tweaks
 on:
   workflow_dispatch:
     inputs:
