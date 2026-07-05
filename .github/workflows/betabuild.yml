@@ -1,7 +1,17 @@
-name: Build Test IPA with tweaks
+name: Build TEST IPA with tweaks
 on:
   workflow_dispatch:
     inputs:
+      repo:
+        description: 'Repository to build from'
+        required: true
+        default: 'Tonwalter888/YouMod'
+
+      branch:
+        description: 'Branch to build from'
+        required: true
+        default: 'main'
+
       ipa_url:
         description: "URL to the decrypted IPA file"
         default: ""
@@ -62,18 +72,6 @@ on:
         required: false
         type: boolean
 
-      youmute:
-        description: "Integrate YouMute"
-        default: true
-        required: false
-        type: boolean
-
-      youloop:
-        description: "Integrate YouLoop"
-        default: true
-        required: false
-        type: boolean
-
       ytweaks:
         description: "Integrate YTweaks"
         default: true
@@ -82,24 +80,6 @@ on:
 
       youslider:
         description: "Integrate YouSlider"
-        default: true
-        required: false
-        type: boolean
-
-      ytholdspeed:
-        description: "Integrate YTHoldForSpeed"
-        default: true
-        required: false
-        type: boolean
-
-      youchoose:
-        description: "Integrate YouChooseQuality"
-        default: true
-        required: false
-        type: boolean
-
-      youshare:
-        description: "Integrate YouShare"
         default: true
         required: false
         type: boolean
@@ -148,12 +128,14 @@ jobs:
       - name: Install MEGA downloader
         if: ${{ startsWith(inputs.ipa_url, 'https://mega.nz/') }}
         run: brew install megatools
+
       - name: Download IPA from Mega share link
         if: ${{ startsWith(inputs.ipa_url, 'https://mega.nz/') }}
         env:
           IPA_URL: ${{ inputs.ipa_url }}
         run: |
           megadl --no-progress --path youtube.ipa "$IPA_URL"
+
       - name: Download IPA from direct URL
         if: ${{ !startsWith(inputs.ipa_url, 'https://mega.nz/') }}
         env:
@@ -195,7 +177,7 @@ jobs:
 
       - name: Cache Theos
         id: cache-theos
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: theos
           key: 18.6-SDK-${{ env.THEOS_COMMIT }}
@@ -209,6 +191,8 @@ jobs:
             git sparse-checkout set --no-cone iPhoneOS18.6.sdk
             git checkout --quiet
             mv *.sdk "$THEOS/sdks"
+            cd ${{ github.workspace }}/theos/vendor/logos
+            git checkout a62370066a97e36d59b200a9fa10c5091f5e8972
             
       - name: Clone headers
         run: |
@@ -242,9 +226,12 @@ jobs:
            wget --quiet --no-verbose "https://github.com/inoahdev/tbd/releases/download/2.2/tbd-mac" -O /usr/local/bin/tbd
            chmod +x /usr/local/bin/tbd
 
-      - name: Clone
-        run: |
-          git clone --quiet https://github.com/grohit1810/YouMod.git
+      - name: Checkout YouMod
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ inputs.repo }}
+          ref: ${{ inputs.branch }}
+          path: YouMod
 
       - name: Clone Open in YouTube (Safari Extension)
         run: |
@@ -270,7 +257,7 @@ jobs:
         run: git clone --quiet --depth=1 https://github.com/PoomSmart/YouGroupSettings.git
            
       - name: Clone YTVideoOverlay
-        if: ${{ inputs.youpip || inputs.ytuhd || inputs.youquality || inputs.youspeed || inputs.youmute || inputs.youloop || inputs.youshare || inputs.getcap }}
+        if: ${{ inputs.youpip || inputs.ytuhd || inputs.youquality || inputs.youspeed || inputs.getcap }}
         run: git clone --quiet --depth=1 https://github.com/PoomSmart/YTVideoOverlay.git
           
       - name: Clone YTABConfig
@@ -285,35 +272,19 @@ jobs:
         if: ${{ inputs.youspeed }}
         run: git clone --quiet --depth=1 https://github.com/PoomSmart/YouSpeed.git
 
+      - name: Clone UncappedAVPlayer
+        if: ${{ inputs.youspeed }}
+        run: git clone --quiet --depth=1 https://github.com/PoomSmart/UncappedAVPlayer.git
+
       - name: Clone DontEatMyContent
         if: ${{ inputs.demc }}
         run: git clone --quiet --depth=1 https://github.com/therealFoxster/DontEatMyContent.git
-
-      - name: Clone YouMute
-        if: ${{ inputs.youmute }}
-        run: git clone --quiet --depth=1 https://github.com/PoomSmart/YouMute.git
-    
-      - name: Clone YouLoop
-        if: ${{ inputs.youloop }}
-        run: git clone --quiet --depth=1 https://github.com/bhackel/YouLoop.git
 
       - name: Clone YouSlider
         if: ${{ inputs.youslider }}
         run: |
           git clone --quiet --depth=1 https://github.com/PoomSmart/YouSlider.git
           wget --no-verbose --quiet https://github.com/Tonwalter888/Tonwalter888.github.io/raw/refs/heads/main/deb/alderis.deb
-
-      - name: Clone YTHoldForSpeed
-        if: ${{ inputs.ytholdspeed }}
-        run: git clone --quiet --depth=1 https://github.com/joshuaseltzer/YTHoldForSpeed.git
-
-      - name: Clone YouChooseQuality
-        if: ${{ inputs.youchoose }}
-        run: git clone --quiet https://github.com/PoomSmart/YouChooseQuality.git
-
-      - name: Clone YouShare
-        if: ${{ inputs.youshare }}
-        run: git clone --quiet --depth=1 https://github.com/Tonwalter888/YouShare.git
 
       - name: Clone YTweaks
         if: ${{ inputs.ytweaks }}
@@ -335,10 +306,10 @@ jobs:
         if: ${{ inputs.volboost }}
         run: git clone --quiet --depth=1 https://github.com/VasirakCalgux/VolumeBoostYT.git
 
-      - name: Build
+      - name: Build YouMod
         run: |
           cd YouMod
-          git switch feature/add-sponsorblock
+          echo "YOUMOD_VERSION=$(grep '^Version:' control | cut -d ' ' -f2)" >> $GITHUB_ENV
           make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
           mv packages/*.deb ${{ github.workspace }}/youmod.deb
         
@@ -370,7 +341,7 @@ jobs:
           mv packages/*.deb ${{ github.workspace }}/ygs.deb
 
       - name: Build YTVideoOverlay
-        if: ${{ inputs.youpip || inputs.ytuhd || inputs.youquality || inputs.youspeed || inputs.youmute || inputs.youloop || inputs.youshare || inputs.getcap }}
+        if: ${{ inputs.youpip || inputs.ytuhd || inputs.youquality || inputs.youspeed || inputs.getcap }}
         run: |
           cd YTVideoOverlay
           make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
@@ -397,6 +368,13 @@ jobs:
           make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
           mv packages/*.deb ${{ github.workspace }}/youspeed.deb
 
+      - name: Build UncappedAVPlayer
+        if: ${{ inputs.youspeed }}
+        run: |
+          cd UncappedAVPlayer
+          make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
+          mv packages/*.deb ${{ github.workspace }}/uncapavplayer.deb
+
       - name: Build DontEatMyContent
         if: ${{ inputs.demc }}
         run: |
@@ -404,48 +382,12 @@ jobs:
           make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
           mv packages/*.deb ${{ github.workspace }}/demc.deb
 
-      - name: Build YouMute
-        if: ${{ inputs.youmute }}
-        run: |
-          cd YouMute
-          make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
-          mv packages/*.deb ${{ github.workspace }}/ym.deb
-
-      - name: Build YouLoop
-        if: ${{ inputs.youloop }}
-        run: |
-          cd YouLoop
-          make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
-          mv packages/*.deb ${{ github.workspace }}/youloop.deb
-
       - name: Build YouSlider
         if: ${{ inputs.youslider }}
         run: |
           cd YouSlider
           make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
           mv packages/*.deb ${{ github.workspace }}/youslider.deb
-
-      - name: Build YTHoldForSpeed
-        if: ${{ inputs.ytholdspeed }}
-        run: |
-          cd YTHoldForSpeed
-          make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless TARGET=iphone:clang:latest:15.0 ARCHS=arm64
-          mv packages/*.deb ${{ github.workspace }}/ytholdspeed.deb
-
-      - name: Build YouChooseQuality
-        if: ${{ inputs.youchoose }}
-        run: |
-          cd YouChooseQuality
-          git checkout 1585a3691b2ef0b59d42c40c31639fd8b79e2cd4
-          make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
-          mv packages/*.deb ${{ github.workspace }}/youchoose.deb
-
-      - name: Build YouShare
-        if: ${{ inputs.youshare }}
-        run: |
-          cd YouShare
-          make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
-          mv packages/*.deb ${{ github.workspace }}/youshare.deb
 
       - name: Build YTweaks
         if: ${{ inputs.ytweaks }}
