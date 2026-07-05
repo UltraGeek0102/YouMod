@@ -5,12 +5,12 @@ on:
       repo:
         description: 'Repository to build from'
         required: true
-        default: 'Tonwalter888/YouMod'
+        default: 'grohit1810/YouMod'
 
       branch:
         description: 'Branch to build from'
         required: true
-        default: 'main'
+        default: 'feature/add-sponsorblock'
 
       ipa_url:
         description: "URL to the decrypted IPA file"
