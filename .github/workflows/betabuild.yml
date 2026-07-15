@@ -238,11 +238,7 @@ jobs:
     
       - name: Clone YTUHD
         if: ${{ inputs.ytuhd }}
-        run: git clone --quiet --depth=1 --recurse-submodules https://github.com/PoomSmart/YTUHD.git
-
-      - name: Install YTUHD build tools
-        if: ${{ inputs.ytuhd }}
-        run: brew install meson ninja
+        run: git clone --quiet --depth=1 https://github.com/Tonwalter888/YTUHD.git
            
       - name: Clone Return-YouTube-Dislikes
         if: ${{ inputs.ryd }}
@@ -314,9 +310,7 @@ jobs:
         if: ${{ inputs.ytuhd }}
         run: |
           cd YTUHD
-          make libvpx
-          make dav1d
-          make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless SIDELOAD=1
+          make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
           mv packages/*.deb ${{ github.workspace }}/ytuhd.deb
 
       - name: Build Return-YouTube-Dislikes
