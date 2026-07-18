@@ -14,7 +14,7 @@ on:
 
       ipa_url:
         description: "URL to the decrypted IPA file"
-        default: "https://files.catbox.moe/k3ix9c.ipa"
+        default: "https://armconverter.com/decryptedappstore/download/544007664/com.google.ios.youtube/886451555?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjI3ODY4MCIsImlhdCI6MTc4NDM1Mzc0MSwiZXhwIjoxNzg0MzY0NTQxLCJhcHBpZCI6NTQ0MDA3NjY0LCJhcHB2ZXIiOiI4ODY0NTE1NTUifQ.MvlSIDShqW1cYgGy45lOSf2ok1yMtsM2PkDtHXL3zU0"
         required: true
         type: string
 
