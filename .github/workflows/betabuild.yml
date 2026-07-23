@@ -14,7 +14,7 @@ on:
 
       ipa_url:
         description: "URL to the decrypted IPA file"
-        default: "https://files.catbox.moe/f0poam.ipa"
+        default: "https://files.catbox.moe/ru0l7i.ipa"
         required: true
         type: string
 
