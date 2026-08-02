@@ -36,6 +36,11 @@ on:
         required: false
         type: boolean
 
+      ytuhd:
+        description: "Integrate YTUHD"
+        default: true
+        required: false
+        type: boolean
 
       ryd:
         description: "Integrate Return-YouTube-Dislikes"
@@ -73,12 +78,6 @@ on:
         required: false
         type: boolean
 
-      getcap:
-        description: "Integrate YouGetCaption"
-        default: true
-        required: false
-        type: boolean
-
       ytshare:
         description: "Integrate youtube-native-share"
         default: true
@@ -106,7 +105,7 @@ jobs:
       - name: Hide Sensitive Inputs
         uses: levibostian/action-hide-sensitive-inputs@v1
         with:
-          exclude_inputs: bundle_id,display_name,youpip,ryd,abconfig,ytweaks,youslider,gonerino,getcap,demc,volboost
+          exclude_inputs: bundle_id,display_name,youpip,ytuhd,ryd,abconfig,ytweaks,youslider,gonerino,demc,volboost
           
       - name: Install MEGA downloader
         if: ${{ startsWith(inputs.ipa_url, 'https://mega.nz/') }}
@@ -156,14 +155,13 @@ jobs:
             git ls-remote "$repo_url" HEAD | awk '{print substr($1,1,7)}'
           }
           echo "THEOS_COMMIT=$(get_commit_hash "https://github.com/theos/theos")" >> $GITHUB_ENV
-          echo "OPENYT_COMMIT=$(get_commit_hash "https://github.com/BillyCurtis/OpenYouTubeSafariExtension")" >> $GITHUB_ENV
 
       - name: Cache Theos
         id: cache-theos
         uses: actions/cache@v6
         with:
           path: theos
-          key: 18.6-SDK-${{ env.THEOS_COMMIT }}
+          key: 26.5-SDK-${{ env.THEOS_COMMIT }}
 
       - name: Setup Theos
         if: ${{ steps.cache-theos.outputs.cache-hit != 'true' }}
@@ -171,7 +169,7 @@ jobs:
             git clone --quiet --depth=1 --recurse-submodules https://github.com/theos/theos.git
             git clone --quiet --depth=1 -n --filter=tree:0 https://github.com/Tonwalter888/iOS-SDKs.git
             cd iOS-SDKs
-            git sparse-checkout set --no-cone iPhoneOS18.6.sdk
+            git sparse-checkout set --no-cone iPhoneOS26.5.sdk
             git checkout --quiet
             mv *.sdk "$THEOS/sdks"
             cd ${{ github.workspace }}/theos/vendor/logos
@@ -224,6 +222,10 @@ jobs:
       - name: Clone YouPiP
         if: ${{ inputs.youpip }}
         run: git clone --quiet --depth=1 https://github.com/PoomSmart/YouPiP.git
+    
+      - name: Clone YTUHD
+        if: ${{ inputs.ytuhd }}
+        run: git clone --quiet --depth=1 --recurse-submodules https://github.com/PoomSmart/YTUHD.git
            
       - name: Clone Return-YouTube-Dislikes
         if: ${{ inputs.ryd }}
@@ -233,7 +235,7 @@ jobs:
         run: git clone --quiet --depth=1 https://github.com/PoomSmart/YouGroupSettings.git
            
       - name: Clone YTVideoOverlay
-        if: ${{ inputs.youpip || inputs.getcap }}
+        if: ${{ inputs.youpip || inputs.ytuhd }}
         run: git clone --quiet --depth=1 https://github.com/PoomSmart/YTVideoOverlay.git
           
       - name: Clone YTABConfig
@@ -261,10 +263,6 @@ jobs:
         if: ${{ inputs.gonerino }}
         run: git clone --quiet --depth=1 https://github.com/castdrian/Gonerino.git
 
-      - name: Clone YouGetCaption
-        if: ${{ inputs.getcap }}
-        run: git clone --quiet --depth=1 https://github.com/PoomSmart/YouGetCaption.git
-
       - name: Clone youtube-native-share
         if: ${{ inputs.ytshare }}
         run: git clone --quiet --depth=1 https://github.com/jkhsjdhjs/youtube-native-share.git
@@ -287,6 +285,15 @@ jobs:
           make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
           mv packages/*.deb ${{ github.workspace }}/youpip.deb
 
+      - name: Build YTUHD
+        if: ${{ inputs.ytuhd }}
+        run: |
+          cd YTUHD
+          brew install meson ninja
+          make libvpx dav1d
+          make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless SIDELOAD=1
+          mv packages/*.deb ${{ github.workspace }}/ytuhd.deb
+
       - name: Build Return-YouTube-Dislikes
         if: ${{ inputs.ryd }}
         run: |
@@ -301,7 +308,7 @@ jobs:
           mv packages/*.deb ${{ github.workspace }}/ygs.deb
 
       - name: Build YTVideoOverlay
-        if: ${{ inputs.youpip || inputs.getcap }}
+        if: ${{ inputs.youpip || inputs.ytuhd }}
         run: |
           cd YTVideoOverlay
           make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
@@ -317,7 +324,7 @@ jobs:
       - name: Build UncappedAVPlayer
         run: |
           cd UncappedAVPlayer
-          make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
+          make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless ARCHS=arm64
           mv packages/*.deb ${{ github.workspace }}/uncapavplayer.deb
 
       - name: Build DontEatMyContent
@@ -347,13 +354,6 @@ jobs:
           cd Gonerino
           make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
           mv packages/*.deb ${{ github.workspace }}/gonerino.deb
-
-      - name: Build YouGetCaption
-        if: ${{ inputs.getcap }}
-        run: |
-          cd YouGetCaption
-          make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
-          mv packages/*.deb ${{ github.workspace }}/ygc.deb
 
       - name: Build youtube-native-share
         if: ${{ inputs.ytshare }}
